@@ -1,0 +1,106 @@
+<html>
+<head>
+	<title>solar system</title>
+	<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/three.js/r69/three.min.js"></script>
+	<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+	<script src="https://dl.dropboxusercontent.com/u/3587259/Code/Threejs/OrbitControls.js"></script>
+	<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+	</style>
+	<style type="text/css">
+		#stats { position: absolute; top:0; left: 0 }  
+	</style>
+	
+</head>
+
+<body>
+	
+<script type="text/javascript">
+
+		var planetNames = {
+			'sun':{
+				dia:109,
+				dist:0
+			},
+			'mercury':{
+				dia:0.38,
+				dist:4825
+			},
+			'venus':{
+				dia:0.95,
+				dist:5583
+			},
+			'earth':{
+				dia:1,
+				dist:12466
+			},
+			'mars':{
+				dia:0.53,
+				dist:18991
+			},
+			'jupiter':{
+				dia:11.19,
+				dist:64875
+			},
+			'saturn':{
+				dia:9.40,
+				dist:119416
+			},
+			'uranus':{
+				dia:4.04,
+				dist:239750
+			},
+			'neptune':{
+				dia:3.88,
+				dist:375250
+			}
+			//'pluto':{
+			//	dia:0.18,
+			//	dist:360
+			//}
+		};
+
+		var earthDia = 12742;
+		//var stats = new Stats();
+		var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 80000 );
+
+		var controls = new THREE.OrbitControls(camera);
+		controls.addEventListener('change',render);
+
+		var renderer = new THREE.WebGLRenderer();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		document.body.appendChild( renderer.domElement );
+		//document.body.appendChild( stats );
+
+
+		_(planetNames).each(function(obj,propName){
+				var planetSizeMultiplier = 10;
+				if(propName=='sun')
+					planetSizeMultiplier = 2
+				var geometry = new THREE.SphereGeometry (obj.dia * planetSizeMultiplier,8,8);
+				//var material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+				var mesh = new THREE.Mesh( geometry );
+				mesh.position.set(obj.dist / 20, 0, 0);
+				scene.add( mesh );
+		});
+
+		camera.position.z = 1000;
+
+		function render() {
+			requestAnimationFrame( render );
+			renderer.render( scene, camera );
+		}
+
+		function animate() {
+
+		  requestAnimationFrame( animate );
+		  controls.update();
+		  //stats.update();
+		}
+
+		render();
+	</script>
+</body>
+</html>

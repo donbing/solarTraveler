@@ -1,0 +1,242 @@
+<html>
+<head>
+	<title>SOLAR</title>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<script type="text/javascript" src="three.min.js"></script>
+	<script type="text/javascript" src="underscore-min.js"></script>
+	<script src="OrbitControls.js"></script>
+
+	<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+	</style>
+</head>
+
+<body>
+	<table id="planetaryData" cellspacing="0" border="1" style="display:none;">
+	<thead>
+	<tr>
+	  <th></th>
+	  <th>Radius (Gm)</th>
+	  <th>Mass (kg)</th>
+	  <th>Distance (Gm)</th>
+	  <th>Speed (Gm/s)</th>
+	</tr>
+	</thead>
+        <tbody>
+        <tr>
+          <td>Sun</td>
+          <td>0.6955</td>
+          <td>1.988435e30</td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>Mercury</td>
+          <td>0.0024397</td>
+          <td>3.30104e23</td>
+          <td>50.32</td>
+          <td>4.74e-5</td>
+        </tr>
+        </tbody>
+        <tbody>
+        <tr>
+          <td>Venus</td>
+          <td>0.0060519</td>
+          <td>4.86732e24</td>
+          <td>108.8</td>
+          <td>3.5e-5</td>
+        </tr>
+        <tr>
+          <td>Earth</td>
+          <td>0.0063674447</td>
+          <td>5.9721986e24</td>
+          <td>150</td>
+          <td>2.963e-5</td>
+        </tr>
+        <tr>
+          <td>Mars</td>
+          <td>0.003386</td>
+          <td>6.41693e23</td>
+          <td>227.94</td>
+          <td>0.0000228175</td>
+        </tr>
+        <tr>
+          <td>Jupiter</td>
+          <td>0.069173</td>
+          <td>1.89813e27</td>
+          <td>778.33</td>
+          <td>0.0000129824</td>
+        </tr>
+        <tr>
+          <td>Saturn</td>
+          <td>0.057316</td>
+          <td>5.68319e26</td>
+          <td>1429.4</td>
+          <td>9.280e-6</td>
+        </tr>
+        <tr>
+          <td>Uranus</td>
+          <td>0.025266</td>
+          <td>8.68103e25</td>
+          <td>2870.99</td>
+          <td>6.509e-6</td>
+        </tr>
+        <tr>
+          <td>Neptune</td>
+          <td>0.024553</td>
+          <td>1.0241e26</td>
+          <td>4504</td>
+          <td>5.449e-6</td>
+        </tr>
+      </tbody></table>
+<script type="text/javascript">
+		var app = app || {};
+
+(function(_,three){
+  app.Orberry = function(){
+      
+  };
+  
+})(_,THREE);
+
+(function(_,three){
+    var constants = {
+      G:6.67384e-11 // m3 kg-1 s-2
+    }
+    
+    app.Planet = function(planetData)
+    {
+      return planetData;
+    }
+
+    app.Planet.create = function(row){
+       return {
+        name:row.cells[0].innerHTML,
+        radius:parseFloat(row.cells[1].innerHTML),
+        mass:parseFloat(row.cells[2].innerHTML),
+        distance:parseFloat(row.cells[3].innerHTML),
+        velocity: new three.Vector3(0, 0, parseFloat(row.cells[4].innerHTML)),
+        color:0xffff00
+      };
+    };
+
+    app.parsePlanetTable = function(planetDataTable){
+    
+      var system = {
+        star: app.Planet.create(planetDataTable.rows[0]),
+        planets: _(planetDataTable.tBodies[0].rows).map(app.Planet.create)
+      }
+        
+      return system;
+    };
+    
+    app.getGravitationalAcceleration = function(distance, starMass) {
+      return constants.G * starMass / (Math.pow(distance, 2));
+  }
+
+})(_,THREE)
+var SEC_PER_STEP = 4;
+var STEPS_PER_FRAME = 10000;
+var METERS_PER_UNIT = 1000000000;
+var MAX_TRAIL_VERTICES = 800;
+
+
+var planetDataTable = document.getElementById('planetaryData');
+var planetNames = app.parsePlanetTable(planetDataTable).planets;
+
+function updateVelocity(planet, star) {
+  var velocity = new THREE.Vector3();
+  var speed;
+  for(var i=0; i < STEPS_PER_FRAME; i++) {
+  	var distanceBetweenBodiesInMetres = star.position.distanceTo(planet.position) * METERS_PER_UNIT;
+    var gravitationalForce = app.getGravitationalAcceleration(distanceBetweenBodiesInMetres, star.planetaryBody.mass);
+    
+  	speed = gravitationalForce * SEC_PER_STEP;
+  	
+  	velocity.subVectors(star.position, planet.position)
+  			.setLength(speed / METERS_PER_UNIT);
+  
+  	planet.planetaryBody.velocity.add(velocity);
+    //planet.position.add(planet.planetaryBody.velocity.multiplyScalar(SEC_PER_STEP));
+  	planet.position.x += planet.planetaryBody.velocity.x * SEC_PER_STEP;
+  	planet.position.y += planet.planetaryBody.velocity.y * SEC_PER_STEP;
+  	planet.position.z += planet.planetaryBody.velocity.z * SEC_PER_STEP;
+  }
+  leaveTrail(planet);
+}
+
+function createTrail(x, y, z) {
+  var trailGeometry = new THREE.Geometry();
+  for (i = 0; i < MAX_TRAIL_VERTICES; i++) {
+    trailGeometry.vertices.push(new THREE.Vector3(x, y, z));
+  }
+  var trailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, size: 50 });
+  return new THREE.Line(trailGeometry, trailMaterial);
+}
+
+function leaveTrail(sphere) {
+  sphere.trail.geometry.vertices.unshift(sphere.position.clone());
+  sphere.trail.geometry.vertices.length = MAX_TRAIL_VERTICES;
+  sphere.trail.geometry.verticesNeedUpdate = true;
+}
+
+function createRenderer(){
+		var renderer = new THREE.WebGLRenderer();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		document.body.appendChild( renderer.domElement );
+    return renderer;
+}
+
+    
+		var scene = new THREE.Scene();
+		var renderer = createRenderer();
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 100000 );
+		var controls = new THREE.OrbitControls(camera);
+		
+		function addTail(mesh){
+				mesh.trail = createTrail(mesh.planetaryBody.distance, 0, 0)
+				scene.add(mesh.trail);
+				return mesh;
+		};
+		
+		// create geom, add to scene
+		function createPlanet(obj){
+				var planetSizeMultiplier = obj.name=='Sun' ? 6 : 100;
+				var geometry = new THREE.SphereGeometry(obj.radius * 2 * planetSizeMultiplier, 32, 16);
+				var material = new THREE.MeshBasicMaterial({ color: obj.color });
+				var mesh = new THREE.Mesh(geometry, material);
+				mesh.position.set(obj.distance, 0, 0);
+				scene.add(mesh);
+				mesh.planetaryBody = obj;
+				return mesh;
+		};
+		
+		var planets = _(planetNames).map(function(obj){
+		  return addTail(createPlanet(obj));
+		});
+	
+		camera.position.z = 300;
+		camera.position.y = 300;
+		camera.position.x = 200;
+    camera.lookAt(planets[0].position);
+    
+    function updatePlanets(){
+			_(planets).each(function(planet){
+				if(planet != planets[0]){
+					updateVelocity(planet,planets[0]);
+				}
+			});
+    }
+    
+		function render() {
+			requestAnimationFrame( render );
+			renderer.render(scene, camera);
+			updatePlanets();
+	  	controls.update();
+		}
+		
+		render();
+	</script>
+</body>
+</html>
